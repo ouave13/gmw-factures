@@ -1,47 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" role="img" aria-label="GMW">
   <defs>
-    <linearGradient id="gmw-glass-deep" x1="12" y1="12" x2="28" y2="68" gradientUnits="userSpaceOnUse">
+    <linearGradient id="gmw-glass-deep" x1="12" y1="8" x2="24" y2="36" gradientUnits="userSpaceOnUse">
       <stop stop-color="#141210"/>
       <stop offset="1" stop-color="#2c2824"/>
     </linearGradient>
-    <linearGradient id="gmw-mirror" x1="32" y1="10" x2="52" y2="70" gradientUnits="userSpaceOnUse">
+    <linearGradient id="gmw-mirror" x1="28" y1="8" x2="44" y2="36" gradientUnits="userSpaceOnUse">
       <stop stop-color="#1a1816"/>
-      <stop offset="0.32" stop-color="#4a4540"/>
-      <stop offset="0.52" stop-color="#8a8278"/>
-      <stop offset="0.68" stop-color="#5c5650"/>
-      <stop offset="1" stop-color="#24211e"/>
+      <stop offset="0.35" stop-color="#5c5650"/>
+      <stop offset="0.55" stop-color="#9a9288"/>
+      <stop offset="1" stop-color="#2a2622"/>
     </linearGradient>
-    <linearGradient id="gmw-shine" x1="36" y1="14" x2="46" y2="62" gradientUnits="userSpaceOnUse">
+    <linearGradient id="gmw-shine" x1="30" y1="8" x2="42" y2="34" gradientUnits="userSpaceOnUse">
       <stop stop-color="#ffffff" stop-opacity="0"/>
-      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.38"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="gmw-brass" x1="0" y1="0" x2="0" y2="80" gradientUnits="userSpaceOnUse">
+    <linearGradient id="gmw-brass" x1="40" y1="4" x2="40" y2="76" gradientUnits="userSpaceOnUse">
       <stop stop-color="#c4b49a"/>
       <stop offset="1" stop-color="#8f7d62"/>
     </linearGradient>
+    <linearGradient id="gmw-plate" x1="40" y1="38" x2="40" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#faf8f5"/>
+      <stop offset="1" stop-color="#ece6dc"/>
+    </linearGradient>
   </defs>
 
-  <!-- Cadre extérieur -->
-  <rect x="4" y="8" width="72" height="64" rx="3" stroke="url(#gmw-brass)" stroke-width="1.4" opacity="0.85"/>
+  <!-- Cadre -->
+  <rect x="3.5" y="3.5" width="73" height="73" rx="4" stroke="url(#gmw-brass)" stroke-width="1.5"/>
+  <rect x="6" y="6" width="68" height="68" rx="3" fill="#f7f4ef"/>
 
-  <!-- Panneau gauche — verre fumé -->
-  <rect x="10" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-glass-deep)"/>
-  <rect x="10" y="14" width="16" height="52" rx="1.2" stroke="#9a8570" stroke-width="0.9" opacity="0.7"/>
-  <path d="M11.5 16h3.5l-1 48h-3.5z" fill="#ffffff" opacity="0.06"/>
+  <!-- Triptyque (partie haute) -->
+  <rect x="11" y="10" width="14" height="26" rx="1" fill="url(#gmw-glass-deep)" stroke="#9a8570" stroke-width="0.75" opacity="0.95"/>
+  <rect x="33" y="10" width="14" height="26" rx="1" fill="url(#gmw-mirror)" stroke="#9a8570" stroke-width="0.75"/>
+  <rect x="33" y="10" width="14" height="26" rx="1" fill="url(#gmw-shine)"/>
+  <path d="M35 12 L39 12 L37 34 L35 34 Z" fill="#ffffff" opacity="0.22"/>
+  <rect x="55" y="10" width="14" height="26" rx="1" fill="#ffffff" fill-opacity="0.04" stroke="#1c1917" stroke-width="1.1"/>
+  <line x1="56.5" y1="13" x2="56.5" y2="33" stroke="#ffffff" stroke-width="0.5" opacity="0.35"/>
 
-  <!-- Panneau central — miroir -->
-  <rect x="32" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-mirror)"/>
-  <rect x="32" y="14" width="16" height="52" rx="1.2" stroke="#9a8570" stroke-width="0.9"/>
-  <rect x="32" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-shine)"/>
-  <path d="M35.5 17 L41 17 L37.5 63 L35.5 63 Z" fill="#ffffff" opacity="0.2"/>
-  <path d="M40 17 L44.5 30 L44.5 63" stroke="#ffffff" stroke-width="0.9" opacity="0.42" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Séparateur -->
+  <line x1="10" y1="40" x2="70" y2="40" stroke="url(#gmw-brass)" stroke-width="0.9" opacity="0.65"/>
 
-  <!-- Panneau droit — vitre transparente -->
-  <rect x="54" y="14" width="16" height="52" rx="1.2" fill="#ffffff" fill-opacity="0.03" stroke="#1c1917" stroke-width="1.5"/>
-  <rect x="57" y="17" width="10" height="46" rx="0.8" stroke="#1c1917" stroke-width="0.7" opacity="0.18"/>
-  <line x1="58" y1="20" x2="58" y2="60" stroke="#ffffff" stroke-width="0.6" opacity="0.35"/>
-
-  <!-- Ligne d'atelier -->
-  <path d="M8 69.5h64" stroke="url(#gmw-brass)" stroke-width="1.1" stroke-linecap="round" opacity="0.55"/>
+  <!-- Plaque initiales -->
+  <rect x="8" y="42" width="64" height="30" rx="2" fill="url(#gmw-plate)" stroke="#d8cfc0" stroke-width="0.6"/>
+  <text
+    x="40"
+    y="63"
+    text-anchor="middle"
+    font-family="Georgia, 'Libre Baskerville', 'Times New Roman', serif"
+    font-size="21"
+    font-weight="700"
+    letter-spacing="3.2"
+    fill="#1c1917">GMW</text>
 </svg>
