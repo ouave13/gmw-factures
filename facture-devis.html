@@ -724,6 +724,70 @@
       input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
     }
 
+    /* Export PDF (html2pdf — même rendu que l'impression, sans URL Chrome) */
+    body.pdf-export {
+      background: #fff;
+    }
+
+    body.pdf-export .toolbar,
+    body.pdf-export .hint,
+    body.pdf-export .history-panel,
+    body.pdf-export .add-row-wrap,
+    body.pdf-export .row-actions,
+    body.pdf-export .remove-row,
+    body.pdf-export #client-email,
+    body.pdf-export .print-hide,
+    body.pdf-export .fillable-banner {
+      display: none !important;
+    }
+
+    body.pdf-export .page-wrap {
+      margin: 0;
+      padding: 0;
+      max-width: none;
+    }
+
+    body.pdf-export .document {
+      padding: 0;
+      box-shadow: none;
+    }
+
+    body.pdf-export .edit {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+
+    body.pdf-export .party-to,
+    body.pdf-export .notes {
+      padding: 0 !important;
+      background: transparent !important;
+      border: none !important;
+    }
+
+    body.pdf-export .party-to .lbl::after {
+      content: none !important;
+    }
+
+    body.pdf-export .lines-table .edit {
+      padding: 4px 6px !important;
+    }
+
+    body.pdf-export .lines-table thead th {
+      background: var(--table-head) !important;
+      color: var(--ink) !important;
+    }
+
+    body.pdf-export.printing-history-list .page-wrap {
+      display: none !important;
+    }
+
+    body.pdf-export .history-print-report {
+      display: block !important;
+      padding: 0;
+    }
+
     @media (max-width: 640px) {
       .document { padding: 28px 20px; }
       .doc-head, .parties, .meta-row, .doc-foot { grid-template-columns: 1fr; }
@@ -1242,15 +1306,52 @@
       document.querySelectorAll(".print-hide").forEach(el => el.classList.remove("print-hide"));
     }
 
-    function printAndSave() {
+    async function saveElementAsPdf(element, filename) {
+      if (typeof html2pdf === "undefined") {
+        throw new Error("html2pdf unavailable");
+      }
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      await html2pdf().set({
+        margin: [10, 12, 10, 12],
+        filename: filename.endsWith(".pdf") ? filename : filename + ".pdf",
+        image: { type: "jpeg", quality: 0.96 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          scrollY: 0,
+          backgroundColor: "#ffffff",
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+      }).from(element).save();
+    }
+
+    async function printAndSave() {
       archiveDocument(true);
-      applyPrintTitle(collectDocData());
+      const data = collectDocData();
+      const filename = buildPdfFilename(data);
+      const element = document.getElementById("document");
+
       preparePrint();
-      window.addEventListener("afterprint", () => {
+      document.body.classList.add("pdf-export");
+
+      try {
+        await saveElementAsPdf(element, filename);
+      } catch (err) {
+        console.warn("PDF export failed, fallback print:", err);
+        applyPrintTitle(data);
+        window.addEventListener("afterprint", () => {
+          cleanupPrint();
+          restorePrintTitle();
+        }, { once: true });
+        window.print();
+        return;
+      } finally {
+        document.body.classList.remove("pdf-export");
         cleanupPrint();
-        restorePrintTitle();
-      }, { once: true });
-      window.print();
+      }
     }
 
     function toggleHistory() {
@@ -1311,7 +1412,7 @@
         </div>`;
     }
 
-    function exportHistoryListPdf() {
+    async function exportHistoryListPdf() {
       const history = getHistory();
       if (!history.length) {
         alert("Aucun document dans l'historique.");
@@ -1319,18 +1420,27 @@
       }
       const report = document.getElementById("history-print-report");
       report.innerHTML = buildHistoryReportHtml(history);
-      document.body.classList.add("printing-history-list");
-      applyHistoryListPrintTitle();
-      window.addEventListener("afterprint", function onDone() {
-        document.body.classList.remove("printing-history-list");
+      document.body.classList.add("printing-history-list", "pdf-export");
+
+      try {
+        await saveElementAsPdf(report, "Historique_GMW_" + todayISO());
+      } catch (err) {
+        console.warn("PDF export failed, fallback print:", err);
+        applyHistoryListPrintTitle();
+        window.addEventListener("afterprint", function onDone() {
+          document.body.classList.remove("printing-history-list");
+          report.innerHTML = "";
+          restorePrintTitle();
+          window.removeEventListener("afterprint", onDone);
+        });
+        window.print();
+      } finally {
+        document.body.classList.remove("printing-history-list", "pdf-export");
         report.innerHTML = "";
-        restorePrintTitle();
-        window.removeEventListener("afterprint", onDone);
-      });
-      window.print();
+      }
     }
 
-    function exportHistoryPdf(id) {
+    async function exportHistoryPdf(id) {
       const entry = getHistory().find(h => h.id === id);
       if (!entry) return;
 
@@ -1342,11 +1452,24 @@
       currentDocId = entry.id;
       if (wasOpen) panel.classList.remove("open");
 
-      applyPrintTitle(entry);
       preparePrint();
-      window.addEventListener("afterprint", function onDone() {
+      document.body.classList.add("pdf-export");
+      const filename = buildPdfFilename(entry);
+
+      try {
+        await saveElementAsPdf(document.getElementById("document"), filename);
+      } catch (err) {
+        console.warn("PDF export failed, fallback print:", err);
+        applyPrintTitle(entry);
+        window.addEventListener("afterprint", function onDone() {
+          cleanupPrint();
+          restorePrintTitle();
+          window.removeEventListener("afterprint", onDone);
+        });
+        window.print();
+      } finally {
+        document.body.classList.remove("pdf-export");
         cleanupPrint();
-        restorePrintTitle();
         if (printRestoreBackup) {
           loadDocData(printRestoreBackup.data, { skipDraftSave: true });
           currentDocId = printRestoreBackup.id;
@@ -1354,9 +1477,7 @@
           document.querySelectorAll(".edit").forEach(syncFillableState);
         }
         if (wasOpen) panel.classList.add("open");
-        window.removeEventListener("afterprint", onDone);
-      });
-      window.print();
+      }
     }
 
     function renderHistory() {
@@ -1467,5 +1588,6 @@
 
     document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", init) : init();
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>

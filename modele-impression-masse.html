@@ -248,6 +248,11 @@
         print-color-adjust: exact;
       }
     }
+
+    body.pdf-export .toolbar,
+    body.pdf-export .hint { display: none !important; }
+    body.pdf-export .page-wrap { margin: 0; padding: 0; max-width: none; }
+    body.pdf-export .document { padding: 0; box-shadow: none; }
   </style>
 </head>
 <body class="mode-facture">
@@ -378,8 +383,6 @@
       tbody.appendChild(tr);
     }
 
-    let savedTitle = document.title;
-
     function setMode(mode) {
       document.body.className = "mode-" + mode;
       const facture = mode === "facture";
@@ -390,16 +393,29 @@
       document.getElementById("btn-devis").classList.toggle("active", !facture);
     }
 
-    function printFondsFixe() {
+    async function printFondsFixe() {
       const facture = document.body.classList.contains("mode-facture");
-      savedTitle = document.title;
-      document.title = facture ? "GMW_Fonds_fixe_Facture" : "GMW_Fonds_fixe_Devis";
-      window.addEventListener("afterprint", function onDone() {
-        document.title = savedTitle;
-        window.removeEventListener("afterprint", onDone);
-      });
-      window.print();
+      const filename = facture ? "GMW_Fonds_fixe_Facture.pdf" : "GMW_Fonds_fixe_Devis.pdf";
+      const element = document.querySelector(".document");
+
+      document.body.classList.add("pdf-export");
+      try {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await html2pdf().set({
+          margin: [10, 12, 10, 12],
+          filename,
+          image: { type: "jpeg", quality: 0.96 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0, backgroundColor: "#ffffff" },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        }).from(element).save();
+      } catch (err) {
+        console.warn(err);
+        window.print();
+      } finally {
+        document.body.classList.remove("pdf-export");
+      }
     }
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>
