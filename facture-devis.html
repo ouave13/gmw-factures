@@ -700,6 +700,50 @@
     @media print {
       body { background: #fff; font-size: 10pt; }
 
+      /* ── iOS : force la mise en page bureau même en largeur étroite ── */
+      .doc-head {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 24px !important;
+      }
+      .doc-id { text-align: right !important; }
+
+      .parties { grid-template-columns: 1fr 1fr !important; gap: 40px !important; }
+      .meta-row { grid-template-columns: 0.9fr 1.4fr 1fr 1fr !important; }
+      .doc-foot { grid-template-columns: 1fr minmax(240px, 40%) !important; gap: 32px !important; }
+
+      /* Tableau : retour au format colonnes classique */
+      .lines-table thead { display: table-header-group !important; }
+      .lines-table tbody { display: table-row-group !important; }
+      .lines-table tr {
+        display: table-row !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+      .lines-table td {
+        display: table-cell !important;
+        border: none !important;
+        border-bottom: 1px solid var(--line) !important;
+        vertical-align: middle !important;
+      }
+      .lines-table td::before { content: none !important; }
+      .lines-table .edit {
+        width: 100% !important;
+        text-align: inherit !important;
+        border: none !important;
+        background: transparent !important;
+      }
+      .lines-table .edit.r { text-align: right !important; }
+      .line-total::before { content: none !important; }
+      .line-total {
+        font-family: var(--sans) !important;
+        font-size: 10pt !important;
+        font-weight: 600 !important;
+        text-align: right !important;
+      }
+
       .toolbar, .hint, .history-panel, .add-row-wrap, .row-actions, .remove-row,
       #client-email, .print-hide, .fillable-banner {
         display: none !important;
@@ -750,6 +794,57 @@
     body.pdf-export {
       background: #fff;
     }
+
+    /* ── iOS/mobile : force la mise en page bureau pendant l'export PDF ── */
+    body.pdf-export .doc-head {
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 24px !important;
+    }
+    body.pdf-export .doc-id { text-align: right !important; }
+    body.pdf-export .parties { grid-template-columns: 1fr 1fr !important; gap: 40px !important; }
+    body.pdf-export .meta-row { grid-template-columns: 0.9fr 1.4fr 1fr 1fr !important; }
+    body.pdf-export .meta-row > div:first-child { grid-column: auto !important; }
+    body.pdf-export .doc-foot { grid-template-columns: 1fr minmax(240px, 40%) !important; gap: 32px !important; }
+    body.pdf-export .brand-name { font-size: 30px !important; }
+    body.pdf-export .doc-id-type { font-size: 22px !important; }
+
+    body.pdf-export .lines-table thead { display: table-header-group !important; }
+    body.pdf-export .lines-table tbody { display: table-row-group !important; }
+    body.pdf-export .lines-table tr {
+      display: table-row !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+    }
+    body.pdf-export .lines-table td {
+      display: table-cell !important;
+      border: none !important;
+      border-bottom: 1px solid var(--line) !important;
+      vertical-align: middle !important;
+    }
+    body.pdf-export .lines-table td::before { content: none !important; }
+    body.pdf-export .lines-table .edit {
+      width: 100% !important;
+      text-align: inherit !important;
+      border: none !important;
+      background: transparent !important;
+      font-size: 13px !important;
+    }
+    body.pdf-export .lines-table .edit.r { text-align: right !important; }
+    body.pdf-export .line-total::before { content: none !important; }
+    body.pdf-export .line-total {
+      display: table-cell !important;
+      font-family: var(--sans) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      text-align: right !important;
+    }
+    body.pdf-export .totals-line.grand { padding: 14px 16px !important; }
+    body.pdf-export .totals-line.grand span:last-child { font-size: 22px !important; }
+
+    body.pdf-export .lines-table tbody tr.is-empty { display: none !important; }
 
     body.pdf-export .toolbar,
     body.pdf-export .hint,
@@ -810,7 +905,7 @@
       padding: 0;
     }
 
-    @media (max-width: 640px) {
+    @media screen and (max-width: 640px) {
       body { font-size: 14px; }
 
       .toolbar { padding: 10px 14px; gap: 8px; }
@@ -829,19 +924,25 @@
       textarea.edit { font-size: 16px; }
       .lines-table .edit { font-size: 16px; }
 
-      /* En-tête empilé et centré */
+      /* En-tête empilé — bloc marque puis type de document */
       .doc-head {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-        padding-bottom: 18px;
+        align-items: stretch;
+        gap: 0;
+        padding-bottom: 16px;
         margin-bottom: 24px;
       }
-      .brand { gap: 14px; }
-      .logo { width: 50px; height: 50px; }
-      .brand-name { font-size: 27px; }
-      .doc-id { text-align: left; }
-      .doc-id-type { font-size: 20px; }
+      .brand { gap: 14px; align-items: center; }
+      .logo { width: 52px; height: 52px; }
+      .brand-name { font-size: 28px; }
+      .doc-id {
+        text-align: left;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .doc-id-type { font-size: 19px; letter-spacing: 0.2em; }
+      .doc-id-sub { margin-top: 4px; }
 
       /* Parties empilées */
       .parties { grid-template-columns: 1fr; gap: 20px; margin-bottom: 22px; }
@@ -1479,6 +1580,7 @@
           scale: 2,
           useCORS: true,
           scrollY: 0,
+          windowWidth: 820,
           backgroundColor: "#ffffff",
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
