@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" role="img" aria-label="GMW">
+  <defs>
+    <linearGradient id="gmw-glass-deep" x1="12" y1="12" x2="28" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#141210"/>
+      <stop offset="1" stop-color="#2c2824"/>
+    </linearGradient>
+    <linearGradient id="gmw-mirror" x1="32" y1="10" x2="52" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1a1816"/>
+      <stop offset="0.32" stop-color="#4a4540"/>
+      <stop offset="0.52" stop-color="#8a8278"/>
+      <stop offset="0.68" stop-color="#5c5650"/>
+      <stop offset="1" stop-color="#24211e"/>
+    </linearGradient>
+    <linearGradient id="gmw-shine" x1="36" y1="14" x2="46" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gmw-brass" x1="0" y1="0" x2="0" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4b49a"/>
+      <stop offset="1" stop-color="#8f7d62"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Cadre extérieur -->
+  <rect x="4" y="8" width="72" height="64" rx="3" stroke="url(#gmw-brass)" stroke-width="1.4" opacity="0.85"/>
+
+  <!-- Panneau gauche — verre fumé -->
+  <rect x="10" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-glass-deep)"/>
+  <rect x="10" y="14" width="16" height="52" rx="1.2" stroke="#9a8570" stroke-width="0.9" opacity="0.7"/>
+  <path d="M11.5 16h3.5l-1 48h-3.5z" fill="#ffffff" opacity="0.06"/>
+
+  <!-- Panneau central — miroir -->
+  <rect x="32" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-mirror)"/>
+  <rect x="32" y="14" width="16" height="52" rx="1.2" stroke="#9a8570" stroke-width="0.9"/>
+  <rect x="32" y="14" width="16" height="52" rx="1.2" fill="url(#gmw-shine)"/>
+  <path d="M35.5 17 L41 17 L37.5 63 L35.5 63 Z" fill="#ffffff" opacity="0.2"/>
+  <path d="M40 17 L44.5 30 L44.5 63" stroke="#ffffff" stroke-width="0.9" opacity="0.42" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Panneau droit — vitre transparente -->
+  <rect x="54" y="14" width="16" height="52" rx="1.2" fill="#ffffff" fill-opacity="0.03" stroke="#1c1917" stroke-width="1.5"/>
+  <rect x="57" y="17" width="10" height="46" rx="0.8" stroke="#1c1917" stroke-width="0.7" opacity="0.18"/>
+  <line x1="58" y1="20" x2="58" y2="60" stroke="#ffffff" stroke-width="0.6" opacity="0.35"/>
+
+  <!-- Ligne d'atelier -->
+  <path d="M8 69.5h64" stroke="url(#gmw-brass)" stroke-width="1.1" stroke-linecap="round" opacity="0.55"/>
+</svg>

@@ -88,6 +88,14 @@
       border-bottom: 2px solid var(--line-dark);
       margin-bottom: 24px;
     }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo { width: 52px; height: 52px; flex-shrink: 0; display: block; }
+
     .brand-name {
       font-family: var(--serif);
       font-size: 26px;
@@ -275,9 +283,12 @@
   <div class="page-wrap">
     <article class="document">
       <header class="doc-head">
-        <div>
-          <div class="brand-name">GMW</div>
-          <div class="brand-tag">Vitrerie · Miroiterie · Verre</div>
+        <div class="brand">
+          <img class="logo" src="assets/logo.svg" alt="" width="52" height="52">
+          <div>
+            <div class="brand-name">GMW</div>
+            <div class="brand-tag">Vitrerie · Miroiterie · Verre</div>
+          </div>
         </div>
         <div class="doc-id">
           <div class="doc-id-type" id="doc-title">FACTURE</div>
