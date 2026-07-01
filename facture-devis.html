@@ -1424,8 +1424,11 @@
 
       try {
         await saveElementAsPdf(report, "Historique_GMW_" + todayISO());
+        document.body.classList.remove("printing-history-list", "pdf-export");
+        report.innerHTML = "";
       } catch (err) {
         console.warn("PDF export failed, fallback print:", err);
+        document.body.classList.remove("pdf-export");
         applyHistoryListPrintTitle();
         window.addEventListener("afterprint", function onDone() {
           document.body.classList.remove("printing-history-list");
@@ -1434,9 +1437,6 @@
           window.removeEventListener("afterprint", onDone);
         });
         window.print();
-      } finally {
-        document.body.classList.remove("printing-history-list", "pdf-export");
-        report.innerHTML = "";
       }
     }
 
