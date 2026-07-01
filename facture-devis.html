@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>GMW — Facture & Devis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #ffffff;
+      --paper-card: #ffffff;
+      --canvas: #eceff3;
+      --wash: #f9fafb;
+      --wash-hover: #f3f4f6;
+      --table-head: #f5f2ef;
+      --ink: #1c1917;
+      --muted: #6b7280;
+      --faint: #9ca3af;
+      --line: #e5e7eb;
+      --line-dark: #1c1917;
+      --focus: #5c534a;
+      --fillable: #faf6f0;
+      --fillable-line: #e5ddd0;
+      --serif: "Libre Baskerville", Georgia, serif;
+      --sans: "IBM Plex Sans", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--canvas);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Barre outils (hors document) ── */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--ink);
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-title {
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+
+    .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border: none;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .btn-primary { background: var(--paper-card); color: var(--ink); }
+    .btn-primary:hover { background: var(--wash-hover); }
+    .btn-ghost { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.18); }
+    .btn-ghost.active { background: var(--paper-card); color: var(--ink); }
+
+    .toolbar a.btn { text-decoration: none; display: inline-block; line-height: 1.2; }
+
+    .hint {
+      max-width: 820px;
+      margin: 16px auto 0;
+      padding: 0 20px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .page-wrap {
+      max-width: 820px;
+      margin: 16px auto 48px;
+      padding: 0 20px;
+    }
+
+    /* ── Document A4 ── */
+    .document {
+      background: var(--paper-card);
+      padding: 48px 52px 40px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+    }
+
+    .hint strong { color: var(--ink); }
+
+    .fillable-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      background: var(--fillable);
+      border: 1px dashed var(--fillable-line);
+      border-radius: 2px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .fillable-banner strong { color: var(--ink); font-weight: 600; }
+
+    .fillable-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--fillable-line);
+      flex-shrink: 0;
+    }
+
+    /* ── Champs éditables ── */
+    .edit {
+      display: block;
+      width: 100%;
+      font: inherit;
+      color: inherit;
+      background: var(--fillable);
+      border: 1px dashed var(--fillable-line);
+      padding: 6px 8px;
+      border-radius: 2px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+
+    .edit::placeholder { color: var(--faint); font-style: italic; }
+
+    .edit:not(:placeholder-shown),
+    .edit.has-value {
+      background: transparent;
+      border-color: transparent;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      padding: 1px 0 3px;
+    }
+
+    .edit:focus {
+      outline: none;
+      border: 1px solid var(--focus) !important;
+      background: #fff !important;
+      box-shadow: 0 0 0 2px rgba(92, 83, 74, 0.12);
+    }
+
+    .edit[type="date"] {
+      background: var(--fillable);
+      border: 1px dashed var(--fillable-line);
+      padding: 5px 8px;
+    }
+
+    .edit[type="date"]:focus {
+      border: 1px solid var(--focus) !important;
+      background: #fff !important;
+    }
+
+    .edit[type="date"].has-value {
+      background: transparent;
+      border-color: transparent;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      padding: 1px 0 3px;
+    }
+
+    .edit--title {
+      font-family: var(--serif);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .edit--num {
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    textarea.edit {
+      resize: none;
+      line-height: 1.55;
+      overflow: hidden;
+    }
+
+    .lbl {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: 4px;
+    }
+
+    /* ── En-tête ── */
+    .doc-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--line-dark);
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo { width: 48px; height: 48px; flex-shrink: 0; }
+
+    .brand-name {
+      font-family: var(--serif);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1;
+    }
+
+    .brand-tag {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    .doc-id { text-align: right; }
+
+    .doc-id-type {
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+
+    .doc-id-num { margin-top: 6px; }
+
+    .doc-id-num .lbl { text-align: right; margin-bottom: 2px; }
+
+    .doc-id-sub {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-top: 6px;
+    }
+
+    /* ── Parties ── */
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 24px;
+    }
+
+    .party-from .name {
+      font-family: var(--serif);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.35;
+    }
+
+    .party-from .addr {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .party-from .ids {
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--faint);
+      line-height: 1.7;
+    }
+
+    .party-to {
+      padding: 12px 14px;
+      background: var(--fillable);
+      border: 1px dashed var(--fillable-line);
+      border-radius: 2px;
+    }
+
+    .party-to .lbl::after {
+      content: " — à remplir";
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--faint);
+    }
+
+    .party-to .edit + .edit { margin-top: 6px; }
+
+    .party-to .edit--addr { font-size: 12px; color: var(--muted); min-height: 2.8em; }
+
+    /* ── Meta ── */
+    .meta-row {
+      display: grid;
+      grid-template-columns: 0.9fr 1.35fr 1fr 1fr;
+      gap: 16px 20px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+
+    .meta-row > .devis-only,
+    .meta-row > .facture-only {
+      display: block;
+    }
+
+    body.mode-devis .meta-row .facture-only { display: none; }
+    body.mode-facture .meta-row .devis-only { display: none; }
+
+    /* ── Tableau ── */
+    .lines-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .lines-table thead th {
+      background: var(--table-head);
+      color: var(--ink);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid #e8e4dc;
+    }
+
+    .lines-table thead th.r { text-align: right; }
+
+    .lines-table tbody td {
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    .lines-table tbody tr.is-empty { opacity: 0.35; }
+    .lines-table tbody tr.is-empty:focus-within { opacity: 1; }
+
+    .lines-table .edit {
+      padding: 8px;
+      border: 1px dashed transparent;
+      background: transparent;
+    }
+
+    .lines-table .edit:placeholder-shown {
+      background: var(--fillable);
+      border-color: var(--fillable-line);
+    }
+
+    .lines-table .edit:not(:placeholder-shown) {
+      background: transparent;
+      border-color: transparent;
+      border-bottom: none;
+      padding: 8px;
+    }
+
+    .lines-table .edit:focus {
+      background: #fff !important;
+      border: 1px solid var(--focus) !important;
+      box-shadow: 0 0 0 2px rgba(92, 83, 74, 0.1);
+    }
+
+    .lines-table .edit.r {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .line-total {
+      text-align: right;
+      padding: 9px 10px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .row-actions { width: 24px; text-align: center; }
+
+    .remove-row {
+      background: none;
+      border: none;
+      color: var(--line);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    .remove-row:hover { color: #dc2626; }
+
+    .btn-add {
+      display: block;
+      width: 100%;
+      margin-bottom: 24px;
+      padding: 8px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--wash);
+      border: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .btn-add:hover { background: var(--wash-hover); color: var(--ink); }
+
+    /* ── Bas ── */
+    .doc-foot {
+      display: grid;
+      grid-template-columns: 1fr minmax(300px, 38%);
+      gap: 32px;
+      align-items: start;
+    }
+
+    .notes {
+      padding: 12px 14px;
+      background: var(--fillable);
+      border: 1px dashed var(--fillable-line);
+      border-radius: 2px;
+    }
+
+    .notes .edit { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    .notes .rib { margin-top: 14px; }
+
+    .devis-note {
+      margin-top: 12px;
+      font-size: 10px;
+      color: var(--faint);
+      line-height: 1.55;
+    }
+
+    .devis-only { display: none; }
+    body.mode-devis .devis-only { display: block; }
+    body.mode-devis .facture-only { display: none; }
+
+    .totals { border-top: 2px solid var(--line-dark); }
+
+    .totals-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 20px;
+      padding: 8px 0;
+      font-size: 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .totals-line span:first-child {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .totals-line span:last-child {
+      font-weight: 600;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      margin-left: auto;
+      text-align: right;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .totals-line.grand {
+      border-bottom: none;
+      padding-top: 12px;
+      gap: 28px;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .totals-line.grand span:first-child {
+      font-family: var(--serif);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .totals-line.grand span:last-child {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* ── Footer légal ── */
+    .legal {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      text-align: center;
+      font-size: 9px;
+      color: var(--faint);
+      line-height: 1.75;
+    }
+
+    .legal strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    /* ── Historique ── */
+    .history-panel { display: none; max-width: 820px; margin: 0 auto 16px; padding: 0 20px; }
+    .history-panel.open { display: block; }
+
+    .history-box {
+      background: var(--paper-card);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: var(--wash);
+      border-bottom: 1px solid var(--line);
+      gap: 12px;
+    }
+
+    .history-head h2 { font-family: var(--serif); font-size: 16px; }
+    .history-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .history-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .history-head-actions .btn-outline {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      background: var(--paper-card);
+      cursor: pointer;
+    }
+
+    .history-head-actions .btn-outline:hover { background: var(--wash); }
+
+    .history-head-actions .btn-close {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .history-list { max-height: 300px; overflow-y: auto; }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      background: var(--wash);
+      margin-right: 6px;
+    }
+
+    .history-item .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .history-item .amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .history-item-actions { display: flex; gap: 6px; }
+
+    .history-item-actions button {
+      font: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      background: var(--paper-card);
+      cursor: pointer;
+    }
+
+    .history-item-actions .btn-del { color: #dc2626; }
+
+    .history-item-actions .btn-pdf { font-weight: 700; }
+
+    .history-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+
+    /* Rapport historique (impression liste) */
+    .history-print-report { display: none; }
+
+    .history-report { padding: 0; font-size: 11pt; color: var(--ink); }
+
+    .history-report h1 {
+      font-family: var(--serif);
+      font-size: 20pt;
+      margin-bottom: 4pt;
+    }
+
+    .history-report .sub {
+      font-size: 9pt;
+      color: var(--muted);
+      margin-bottom: 16pt;
+    }
+
+    .history-report table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+    }
+
+    .history-report th {
+      text-align: left;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 6pt 8pt;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .history-report th.r, .history-report td.r { text-align: right; }
+
+    .history-report td {
+      padding: 7pt 8pt;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .history-report tfoot td {
+      font-weight: 700;
+      border-top: 2px solid var(--ink);
+      border-bottom: none;
+      padding-top: 10pt;
+    }
+
+    .save-indicator { font-size: 12px; opacity: 0.7; }
+
+    input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.3; cursor: pointer; }
+
+    /* ── Impression ── */
+    @page { size: A4 portrait; margin: 12mm 14mm; }
+
+    @media print {
+      body { background: #fff; font-size: 10pt; }
+
+      .toolbar, .hint, .history-panel, .add-row-wrap, .row-actions, .remove-row,
+      #client-email, .print-hide, .fillable-banner {
+        display: none !important;
+      }
+
+      body.printing-history-list .page-wrap { display: none !important; }
+
+      body.printing-history-list .history-print-report {
+        display: block !important;
+        padding: 0;
+      }
+
+      .page-wrap { margin: 0; padding: 0; max-width: none; }
+      .document { padding: 0; box-shadow: none; }
+
+      .edit {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+
+      .party-to, .notes {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+      }
+
+      .party-to .lbl::after { content: none !important; }
+
+      .lines-table tbody tr.is-empty { display: none !important; }
+
+      .lines-table .edit { padding: 4pt 6pt !important; }
+
+      .lines-table thead th {
+        background: var(--table-head) !important;
+        color: var(--ink) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .doc-foot, .legal { page-break-inside: avoid; break-inside: avoid; }
+
+      input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+    }
+
+    @media (max-width: 640px) {
+      .document { padding: 28px 20px; }
+      .doc-head, .parties, .meta-row, .doc-foot { grid-template-columns: 1fr; }
+      .doc-id { text-align: left; }
+      .edit--num { text-align: left; }
+    }
+  </style>
+</head>
+<body class="mode-facture">
+
+  <div class="toolbar">
+    <span class="toolbar-title">GMW — Facture &amp; Devis <span style="opacity:0.5;font-size:11px">v3.0</span></span>
+    <div class="toolbar-actions">
+      <button class="btn btn-ghost active" id="btn-facture" onclick="setMode('facture')">Facture</button>
+      <button class="btn btn-ghost" id="btn-devis" onclick="setMode('devis')">Devis</button>
+      <button class="btn btn-ghost" onclick="newDocument()">Nouveau</button>
+      <button class="btn btn-ghost" id="btn-history" onclick="toggleHistory()">Historique</button>
+      <a class="btn btn-ghost" href="modele-impression-masse.html" target="_blank" rel="noopener">Impression masse</a>
+      <button class="btn btn-primary" onclick="printAndSave()">Imprimer / PDF</button>
+    </div>
+  </div>
+
+  <div class="history-panel" id="history-panel">
+    <div class="history-box">
+      <div class="history-head">
+        <div>
+          <h2>Historique</h2>
+          <p><span id="history-count">0</span> document(s) sur cet ordinateur</p>
+        </div>
+        <div class="history-head-actions">
+          <button type="button" class="btn-outline" id="btn-history-list-pdf" onclick="exportHistoryListPdf()">Télécharger liste PDF</button>
+          <button type="button" class="btn-close" onclick="toggleHistory()">Fermer</button>
+        </div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+
+  <div id="history-print-report" class="history-print-report" aria-hidden="true"></div>
+
+  <p class="hint">
+    <strong>Mode d'emploi :</strong> les zones <strong>beige</strong> sont à remplir (clique dedans).
+    Les totaux se calculent seuls. Quand c'est prêt → <strong>Imprimer / PDF</strong>.
+    <strong>Cmd+Z</strong> pour annuler. <span class="save-indicator" id="save-indicator"></span>
+  </p>
+
+  <div class="page-wrap">
+    <article class="document" id="document">
+
+      <div class="fillable-banner print-hide">
+        <span class="fillable-dot" aria-hidden="true"></span>
+        <span>Les zones <strong>beige</strong> sont à remplir — clique dessus pour taper le texte.</span>
+      </div>
+
+      <header class="doc-head">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <rect x="6" y="10" width="18" height="58" rx="1" fill="#111827"/>
+            <rect x="31" y="10" width="18" height="58" rx="1" fill="url(#gmw-shine)"/>
+            <rect x="56" y="10" width="18" height="58" rx="1" stroke="#111827" stroke-width="2" fill="none" opacity="0.25"/>
+            <line x1="4" y1="52" x2="76" y2="52" stroke="#3b82f6" stroke-width="1.2" opacity="0.5"/>
+            <defs>
+              <linearGradient id="gmw-shine" x1="31" y1="10" x2="49" y2="68" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#111827"/><stop offset="0.5" stop-color="#1e3a5f"/><stop offset="1" stop-color="#3b82f6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div>
+            <div class="brand-name">GMW</div>
+            <div class="brand-tag">Vitrerie · Miroiterie · Verre</div>
+          </div>
+        </div>
+        <div class="doc-id">
+          <div class="doc-id-type" id="doc-title">FACTURE</div>
+          <div class="doc-id-sub" id="doc-subtitle">Document comptable</div>
+        </div>
+      </header>
+
+      <div class="parties">
+        <div class="party-from">
+          <span class="lbl">Émetteur</span>
+          <div class="name">GLAZING AND MIRROR WORK SARLAU</div>
+          <div class="addr">
+            59, Bd Zerktouni, Rés. Les Fleurs<br>
+            8ème étage N°24, Casablanca, Maroc
+          </div>
+          <div class="ids">
+            ICE : 003964270000039 · RC : 733835 Casablanca<br>
+            IF : 73098365 · TP : 36304860 · CNSS : 7009713
+          </div>
+        </div>
+        <div class="party-to">
+          <span class="lbl">Client</span>
+          <input class="edit edit--title" id="client-name" placeholder="Nom du client ou société">
+          <textarea class="edit edit--addr" id="client-address" placeholder="Adresse" rows="2"></textarea>
+          <input class="edit" id="client-ice" placeholder="ICE client (si société)">
+          <input class="edit" id="client-email" type="email" placeholder="Email client">
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <div>
+          <span class="lbl" id="doc-number-prefix">Facture n°</span>
+          <input class="edit edit--num" id="doc-number" placeholder="F-2026-001">
+        </div>
+        <div>
+          <span class="lbl">Objet</span>
+          <input class="edit" id="doc-object" placeholder="Ex : Fourniture et pose de vitrage sur mesure">
+        </div>
+        <div>
+          <span class="lbl">Date d'émission</span>
+          <input class="edit" id="doc-date" type="date">
+        </div>
+        <div class="facture-only">
+          <span class="lbl">Date d'échéance</span>
+          <input class="edit" id="doc-due" type="date">
+        </div>
+        <div class="devis-only">
+          <span class="lbl">Validité</span>
+          <input class="edit" id="doc-validity" placeholder="30 jours">
+        </div>
+      </div>
+
+      <table class="lines-table" id="lines-table">
+        <thead>
+          <tr>
+            <th style="width:44%">Désignation</th>
+            <th class="r" style="width:8%">Qté</th>
+            <th class="r" style="width:16%">Prix unit. HT</th>
+            <th class="r" style="width:8%">TVA %</th>
+            <th class="r" style="width:16%">Total HT</th>
+            <th class="row-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="lines-body"></tbody>
+      </table>
+
+      <div class="add-row-wrap">
+        <button type="button" class="btn-add" onclick="addRow()">+ Ligne</button>
+      </div>
+
+      <div class="doc-foot">
+        <div class="notes">
+          <span class="lbl">Conditions &amp; remarques</span>
+          <textarea class="edit" id="doc-notes" rows="2" placeholder="Paiement, acompte…"></textarea>
+          <div class="rib">
+            <span class="lbl">Coordonnées bancaires</span>
+            <input class="edit" id="doc-rib" placeholder="RIB / IBAN">
+          </div>
+          <div class="devis-only devis-note">
+            Ce devis est établi sur la base des informations communiquées.
+            Toute modification en cours de chantier fera l'objet d'un avenant.
+          </div>
+        </div>
+        <div class="totals">
+          <div class="totals-line"><span>Total HT</span><span id="total-ht">0,00 MAD</span></div>
+          <div class="totals-line"><span>TVA</span><span id="total-tva">0,00 MAD</span></div>
+          <div class="totals-line grand"><span>TOTAL TTC</span><span id="total-ttc">0,00 MAD</span></div>
+        </div>
+      </div>
+
+      <footer class="legal">
+        <strong>GLAZING AND MIRROR WORK SARLAU</strong>
+        Société à responsabilité limitée à associé unique · Capital 100&nbsp;000,00 MAD<br>
+        59, Bd Zerktouni, Rés. Les Fleurs, 8ème étage N°24, Casablanca, Maroc<br>
+        ICE : 003964270000039 · RC : 733835 · IF : 73098365 · TP : 36304860 · CNSS : 7009713
+      </footer>
+
+    </article>
+  </div>
+
+  <script>
+    const DEFAULT_PAGE_TITLE = "GMW — Facture & Devis";
+    const DEFAULT_ROWS = 6;
+    const DEFAULT_TVA = 20;
+    const HISTORY_KEY = "gmw-history";
+    const DRAFT_KEY = "gmw-draft";
+    let saveTimer = null, undoTimer = null, currentDocId = null;
+    let undoStack = [], undoSnapshot = null, isRestoring = false;
+    let printDateBackup = [];
+    let printRestoreBackup = null;
+    let savedPageTitle = null;
+    const UNDO_LIMIT = 40;
+
+    function sanitizeFilenamePart(s, fallback) {
+      const cleaned = String(s ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/[^\w\s\-]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "");
+      return cleaned || fallback;
+    }
+
+    function buildPdfFilename(data) {
+      const num = sanitizeFilenamePart(data.number, "sans-numero");
+      const client = sanitizeFilenamePart(data.clientName, "client");
+      return num + "_GMW_" + client;
+    }
+
+    function applyPrintTitle(data) {
+      savedPageTitle = document.title;
+      document.title = buildPdfFilename(data);
+    }
+
+    function applyHistoryListPrintTitle() {
+      savedPageTitle = document.title;
+      document.title = "Historique_GMW_" + todayISO();
+    }
+
+    function restorePrintTitle() {
+      if (savedPageTitle !== null) {
+        document.title = savedPageTitle;
+        savedPageTitle = null;
+      }
+    }
+
+    function formatMoney(n) {
+      if (!isFinite(n)) n = 0;
+      try {
+        return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " MAD";
+      } catch {
+        return n.toFixed(2).replace(".", ",") + " MAD";
+      }
+    }
+
+    function parseNum(val) {
+      if (val == null) return 0;
+      const n = parseFloat(String(val).replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+      return isFinite(n) ? n : 0;
+    }
+
+    function storageGet(k, fb) { try { return localStorage.getItem(k) ?? fb; } catch { return fb; } }
+    function storageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+    function storageRemove(k) { try { localStorage.removeItem(k); } catch {} }
+
+    function setMode(mode) {
+      document.body.className = "mode-" + mode;
+      document.getElementById("doc-title").textContent = mode === "facture" ? "FACTURE" : "DEVIS";
+      document.getElementById("doc-subtitle").textContent = mode === "facture" ? "Document comptable" : "Offre commerciale";
+      document.getElementById("doc-number-prefix").textContent = mode === "facture" ? "Facture n°" : "Devis n°";
+      document.getElementById("btn-facture").classList.toggle("active", mode === "facture");
+      document.getElementById("btn-devis").classList.toggle("active", mode === "devis");
+      storageSet("gmw-mode", mode);
+      scheduleDraftSave();
+    }
+
+    function syncFillableState(el) {
+      el.classList.toggle("has-value", !!(el.value && String(el.value).trim()));
+    }
+
+    function bindFillableVisuals() {
+      document.querySelectorAll(".edit").forEach(el => {
+        syncFillableState(el);
+        el.addEventListener("input", () => syncFillableState(el));
+        el.addEventListener("change", () => syncFillableState(el));
+      });
+    }
+
+    function wireLineInput(input) {
+      const onEdit = () => { recalc(); scheduleDraftSave(); scheduleUndoCapture(); };
+      input.addEventListener("input", onEdit);
+      input.addEventListener("change", onEdit);
+    }
+
+    function bindLineCalc() {
+      if (window._gmwCalcBound) return;
+      window._gmwCalcBound = true;
+      document.addEventListener("input", e => { if (e.target?.closest?.("#lines-body")) recalc(); }, true);
+      document.addEventListener("change", e => { if (e.target?.closest?.("#lines-body")) recalc(); }, true);
+    }
+
+    function createRow(data = {}) {
+      const tr = document.createElement("tr");
+      const mk = (cls, ph, val, num) => {
+        const inp = document.createElement("input");
+        inp.className = "edit" + (num ? " r" : "") + " " + cls;
+        inp.placeholder = ph;
+        inp.value = val ?? "";
+        if (num) { inp.type = "text"; inp.inputMode = "decimal"; }
+        wireLineInput(inp);
+        return inp;
+      };
+      const td = el => { const c = document.createElement("td"); c.appendChild(el); return c; };
+
+      tr.appendChild(td(mk("desc", "Description", data.desc, false)));
+      tr.appendChild(td(mk("qty", "1", data.qty, true)));
+      tr.appendChild(td(mk("price", "0,00", data.price, true)));
+      tr.appendChild(td(mk("tva", String(DEFAULT_TVA), data.tva ?? DEFAULT_TVA, true)));
+
+      const totalTd = document.createElement("td");
+      totalTd.className = "line-total";
+      totalTd.textContent = "0,00 MAD";
+      tr.appendChild(totalTd);
+
+      const actTd = document.createElement("td");
+      actTd.className = "row-actions";
+      const btn = document.createElement("button");
+      btn.className = "remove-row";
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.addEventListener("click", () => removeRow(btn));
+      actTd.appendChild(btn);
+      tr.appendChild(actTd);
+      return tr;
+    }
+
+    function addRow(data) {
+      if (!isRestoring) saveUndoBeforeEdit();
+      document.getElementById("lines-body").appendChild(createRow(data));
+      recalc();
+      syncUndoSnapshot();
+    }
+
+    function removeRow(btn) {
+      if (document.querySelectorAll("#lines-body tr").length <= 1) return;
+      if (!isRestoring) saveUndoBeforeEdit();
+      btn.closest("tr").remove();
+      recalc();
+      syncUndoSnapshot();
+    }
+
+    function recalc() {
+      let totalHT = 0, totalTVA = 0;
+      document.querySelectorAll("#lines-body tr").forEach(row => {
+        const desc = row.querySelector(".desc");
+        const qty = row.querySelector(".qty");
+        const price = row.querySelector(".price");
+        const tva = row.querySelector(".tva");
+        const total = row.querySelector(".line-total");
+        if (!qty || !price || !tva || !total) return;
+
+        const d = desc?.value.trim() || "";
+        const q = parseNum(qty.value);
+        const p = parseNum(price.value);
+        const rate = parseNum(tva.value);
+        const ht = q * p;
+
+        row.classList.toggle("is-empty", !d && !qty.value.trim() && !price.value.trim());
+        total.textContent = formatMoney(ht);
+        totalHT += ht;
+        totalTVA += ht * (rate / 100);
+      });
+      document.getElementById("total-ht").textContent = formatMoney(totalHT);
+      document.getElementById("total-tva").textContent = formatMoney(totalTVA);
+      document.getElementById("total-ttc").textContent = formatMoney(totalHT + totalTVA);
+    }
+    window.recalc = recalc;
+
+    function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+    function nextDocNumber(mode) {
+      const key = "gmw-counter-" + mode;
+      const n = parseInt(storageGet(key, "0"), 10) + 1;
+      storageSet(key, String(n));
+      return (mode === "facture" ? "F" : "D") + "-" + new Date().getFullYear() + "-" + String(n).padStart(3, "0");
+    }
+
+    function collectDocData() {
+      const mode = document.body.classList.contains("mode-devis") ? "devis" : "facture";
+      const lines = [];
+      document.querySelectorAll("#lines-body tr").forEach(row => {
+        const desc = row.querySelector(".desc")?.value.trim() || "";
+        const qty = row.querySelector(".qty")?.value || "";
+        const price = row.querySelector(".price")?.value || "";
+        const tva = row.querySelector(".tva")?.value || "";
+        if (desc || qty || price) lines.push({ desc, qty, price, tva });
+      });
+      let totalHT = 0, totalTVA = 0;
+      lines.forEach(l => {
+        const ht = parseNum(l.qty) * parseNum(l.price);
+        totalHT += ht;
+        totalTVA += ht * (parseNum(l.tva) / 100);
+      });
+      return {
+        id: currentDocId || ("doc-" + Date.now()),
+        mode,
+        number: document.getElementById("doc-number").value,
+        date: document.getElementById("doc-date").value,
+        due: document.getElementById("doc-due").value,
+        validity: document.getElementById("doc-validity").value,
+        clientName: document.getElementById("client-name").value,
+        clientAddress: document.getElementById("client-address").value,
+        clientIce: document.getElementById("client-ice").value,
+        clientEmail: document.getElementById("client-email").value,
+        object: document.getElementById("doc-object").value,
+        notes: document.getElementById("doc-notes").value,
+        rib: document.getElementById("doc-rib").value,
+        lines, totalHT, totalTTC: totalHT + totalTVA,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    function loadDocData(data, opts) {
+      isRestoring = true;
+      currentDocId = data.id;
+      setMode(data.mode || "facture");
+      document.getElementById("doc-number").value = data.number || "";
+      document.getElementById("doc-date").value = data.date || todayISO();
+      document.getElementById("doc-due").value = data.due || "";
+      document.getElementById("doc-validity").value = data.validity || "30 jours";
+      document.getElementById("client-name").value = data.clientName || "";
+      document.getElementById("client-address").value = data.clientAddress || "";
+      document.getElementById("client-ice").value = data.clientIce || "";
+      document.getElementById("client-email").value = data.clientEmail || "";
+      document.getElementById("doc-object").value = data.object || "";
+      document.getElementById("doc-notes").value = data.notes || "";
+      document.getElementById("doc-rib").value = data.rib || "";
+      document.getElementById("lines-body").innerHTML = "";
+      const lines = data.lines?.length ? data.lines : [];
+      const count = Math.max(lines.length, DEFAULT_ROWS);
+      for (let i = 0; i < count; i++) document.getElementById("lines-body").appendChild(createRow(lines[i] || {}));
+      recalc();
+      isRestoring = false;
+      document.querySelectorAll(".edit").forEach(syncFillableState);
+      if (!opts?.skipDraftSave) scheduleDraftSave();
+    }
+
+    function snapshotState() { return JSON.stringify(collectDocData()); }
+    function syncUndoSnapshot() { if (!isRestoring) undoSnapshot = snapshotState(); }
+    function resetUndoStack() { undoStack = []; syncUndoSnapshot(); }
+    function saveUndoBeforeEdit() {
+      if (isRestoring) return;
+      undoStack.push(snapshotState());
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    }
+    function commitUndoPoint() {
+      if (isRestoring) return;
+      const now = snapshotState();
+      if (now === undoSnapshot) return;
+      undoStack.push(undoSnapshot);
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+      undoSnapshot = now;
+    }
+    function scheduleUndoCapture() { clearTimeout(undoTimer); undoTimer = setTimeout(commitUndoPoint, 600); }
+
+    function undoLastAction() {
+      if (!undoStack.length) { showSaveIndicator("Rien à annuler"); return; }
+      const prev = undoStack.pop();
+      loadDocData(JSON.parse(prev), { skipDraftSave: true });
+      undoSnapshot = prev;
+      scheduleDraftSave();
+      showSaveIndicator("Annulé");
+    }
+
+    function bindUndoKeyboard() {
+      document.addEventListener("keydown", e => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+          e.preventDefault();
+          undoLastAction();
+        }
+      });
+    }
+
+    function getHistory() { try { return JSON.parse(storageGet(HISTORY_KEY, "[]")); } catch { return []; } }
+    function saveHistory(list) { storageSet(HISTORY_KEY, JSON.stringify(list)); renderHistory(); }
+
+    function archiveDocument(markPrinted) {
+      const data = collectDocData();
+      if (!data.clientName && !data.number && !data.lines.length) return null;
+      currentDocId = data.id;
+      const history = getHistory();
+      const idx = history.findIndex(h => h.id === data.id);
+      const entry = { ...data, printedAt: markPrinted ? new Date().toISOString() : (idx >= 0 ? history[idx].printedAt : null) };
+      if (idx >= 0) history[idx] = entry; else history.unshift(entry);
+      if (history.length > 200) history.length = 200;
+      saveHistory(history);
+      storageRemove(DRAFT_KEY);
+      showSaveIndicator(markPrinted ? "Archivé" : "Brouillon");
+      return entry;
+    }
+
+    function scheduleDraftSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        storageSet(DRAFT_KEY, JSON.stringify(collectDocData()));
+        showSaveIndicator("Sauvegardé");
+      }, 800);
+    }
+
+    function showSaveIndicator(msg) {
+      const el = document.getElementById("save-indicator");
+      el.textContent = "· " + msg;
+      setTimeout(() => { if (el.textContent.includes(msg)) el.textContent = ""; }, 2500);
+    }
+
+    function formatDatePrint(iso) {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      return d + "/" + m + "/" + y;
+    }
+
+    function preparePrint() {
+      document.querySelectorAll("#lines-body tr").forEach(row => {
+        const d = row.querySelector(".desc")?.value.trim() || "";
+        const q = row.querySelector(".qty")?.value.trim() || "";
+        const p = row.querySelector(".price")?.value.trim() || "";
+        row.classList.toggle("print-hide", !d && !q && !p);
+      });
+      printDateBackup = [];
+      document.querySelectorAll('input[type="date"]').forEach(el => {
+        printDateBackup.push({ el, type: el.type, value: el.value });
+        if (el.value) { el.type = "text"; el.value = formatDatePrint(printDateBackup.at(-1).value); }
+      });
+      ["client-ice", "doc-rib", "client-email"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("print-hide", !el.value.trim());
+      });
+    }
+
+    function cleanupPrint() {
+      printDateBackup.forEach(({ el, type, value }) => { el.type = type; el.value = value; });
+      printDateBackup = [];
+      document.querySelectorAll(".print-hide").forEach(el => el.classList.remove("print-hide"));
+    }
+
+    function printAndSave() {
+      archiveDocument(true);
+      applyPrintTitle(collectDocData());
+      preparePrint();
+      window.addEventListener("afterprint", () => {
+        cleanupPrint();
+        restorePrintTitle();
+      }, { once: true });
+      window.print();
+    }
+
+    function toggleHistory() {
+      document.getElementById("history-panel").classList.toggle("open");
+      renderHistory();
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "—";
+      return new Date(iso).toLocaleDateString("fr-MA", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buildHistoryReportHtml(history) {
+      const total = history.reduce((sum, h) => sum + (h.totalTTC || 0), 0);
+      const rows = history.map(h => `
+        <tr>
+          <td>${h.mode === "facture" ? "Facture" : "Devis"}</td>
+          <td>${escapeHtml(h.number || "—")}</td>
+          <td>${escapeHtml(h.clientName || "—")}</td>
+          <td>${escapeHtml(h.object || "—")}</td>
+          <td>${formatDate(h.date)}</td>
+          <td>${h.printedAt ? formatDate(h.printedAt) : "—"}</td>
+          <td class="r">${formatMoney(h.totalTTC || 0)}</td>
+        </tr>`).join("");
+
+      return `
+        <div class="history-report">
+          <h1>Historique des documents</h1>
+          <p class="sub">GLAZING AND MIRROR WORK SARLAU · ${history.length} document(s) · exporté le ${formatDate(new Date().toISOString())}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>N°</th>
+                <th>Client</th>
+                <th>Objet</th>
+                <th>Date</th>
+                <th>Imprimé</th>
+                <th class="r">Total TTC</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6">Total cumulé</td>
+                <td class="r">${formatMoney(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+    }
+
+    function exportHistoryListPdf() {
+      const history = getHistory();
+      if (!history.length) {
+        alert("Aucun document dans l'historique.");
+        return;
+      }
+      const report = document.getElementById("history-print-report");
+      report.innerHTML = buildHistoryReportHtml(history);
+      document.body.classList.add("printing-history-list");
+      applyHistoryListPrintTitle();
+      window.addEventListener("afterprint", function onDone() {
+        document.body.classList.remove("printing-history-list");
+        report.innerHTML = "";
+        restorePrintTitle();
+        window.removeEventListener("afterprint", onDone);
+      });
+      window.print();
+    }
+
+    function exportHistoryPdf(id) {
+      const entry = getHistory().find(h => h.id === id);
+      if (!entry) return;
+
+      const panel = document.getElementById("history-panel");
+      const wasOpen = panel.classList.contains("open");
+
+      printRestoreBackup = { data: collectDocData(), id: currentDocId };
+      loadDocData(entry, { skipDraftSave: true });
+      currentDocId = entry.id;
+      if (wasOpen) panel.classList.remove("open");
+
+      applyPrintTitle(entry);
+      preparePrint();
+      window.addEventListener("afterprint", function onDone() {
+        cleanupPrint();
+        restorePrintTitle();
+        if (printRestoreBackup) {
+          loadDocData(printRestoreBackup.data, { skipDraftSave: true });
+          currentDocId = printRestoreBackup.id;
+          printRestoreBackup = null;
+          document.querySelectorAll(".edit").forEach(syncFillableState);
+        }
+        if (wasOpen) panel.classList.add("open");
+        window.removeEventListener("afterprint", onDone);
+      });
+      window.print();
+    }
+
+    function renderHistory() {
+      const history = getHistory();
+      const list = document.getElementById("history-list");
+      const listPdfBtn = document.getElementById("btn-history-list-pdf");
+      document.getElementById("history-count").textContent = history.length;
+      if (listPdfBtn) listPdfBtn.disabled = !history.length;
+
+      if (!history.length) {
+        list.innerHTML = '<div class="history-empty">Aucun document archivé.<br>Clique sur <strong>Imprimer / PDF</strong> pour enregistrer une facture ici.</div>';
+        return;
+      }
+      list.innerHTML = history.map(h => `
+        <div class="history-item">
+          <div>
+            <span class="tag">${h.mode === "facture" ? "Facture" : "Devis"}</span>
+            <strong>${escapeHtml(h.number || "—")}</strong> — ${escapeHtml(h.clientName || "Sans client")}
+            <div class="meta">${formatDate(h.date)}${h.printedAt ? " · Imprimé le " + formatDate(h.printedAt) : ""}</div>
+          </div>
+          <div class="amount">${formatMoney(h.totalTTC || 0)}</div>
+          <div class="history-item-actions">
+            <button type="button" onclick="openFromHistory('${h.id}')">Ouvrir</button>
+            <button type="button" class="btn-pdf" onclick="exportHistoryPdf('${h.id}')">PDF</button>
+            <button type="button" class="btn-del" onclick="deleteFromHistory('${h.id}')">Suppr.</button>
+          </div>
+        </div>`).join("");
+    }
+
+    function openFromHistory(id) {
+      const entry = getHistory().find(h => h.id === id);
+      if (entry) { loadDocData(entry); resetUndoStack(); toggleHistory(); }
+    }
+
+    function deleteFromHistory(id) {
+      if (confirm("Supprimer de l'historique ?")) saveHistory(getHistory().filter(h => h.id !== id));
+    }
+
+    function newDocument() {
+      if (!confirm("Nouveau document ? Les données actuelles seront effacées.")) return;
+      saveUndoBeforeEdit();
+      currentDocId = "doc-" + Date.now();
+      storageRemove(DRAFT_KEY);
+      const mode = document.body.classList.contains("mode-devis") ? "devis" : "facture";
+      document.getElementById("doc-number").value = nextDocNumber(mode);
+      document.getElementById("doc-date").value = todayISO();
+      document.getElementById("doc-due").value = "";
+      document.getElementById("doc-validity").value = "30 jours";
+      ["client-name","client-address","client-ice","client-email","doc-object","doc-rib"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("doc-notes").value = mode === "devis"
+        ? "Devis valable 30 jours. Acompte 50% à la commande. Solde à la livraison."
+        : "Paiement par virement sous 30 jours.";
+      document.getElementById("lines-body").innerHTML = "";
+      isRestoring = true;
+      for (let i = 0; i < DEFAULT_ROWS; i++) document.getElementById("lines-body").appendChild(createRow());
+      isRestoring = false;
+      recalc();
+      resetUndoStack();
+      scheduleDraftSave();
+    }
+
+    function bindAutoSave() {
+      document.querySelectorAll(".edit").forEach(el => {
+        el.addEventListener("input", scheduleDraftSave);
+        el.addEventListener("input", scheduleUndoCapture);
+      });
+    }
+
+    function init() {
+      Object.assign(window, {
+        recalc, setMode, addRow, removeRow, newDocument, printAndSave,
+        toggleHistory, openFromHistory, deleteFromHistory, exportHistoryPdf, exportHistoryListPdf
+      });
+      bindLineCalc();
+      const savedMode = storageGet("gmw-mode", "facture");
+      setMode(savedMode);
+      const draft = storageGet(DRAFT_KEY, null);
+      if (draft) {
+        try { loadDocData(JSON.parse(draft)); }
+        catch {
+          currentDocId = "doc-" + Date.now();
+          isRestoring = true;
+          for (let i = 0; i < DEFAULT_ROWS; i++) document.getElementById("lines-body").appendChild(createRow());
+          isRestoring = false;
+        }
+      } else {
+        currentDocId = "doc-" + Date.now();
+        if (!storageGet("gmw-initialized")) {
+          document.getElementById("doc-number").value = nextDocNumber(savedMode);
+          document.getElementById("doc-date").value = todayISO();
+          document.getElementById("doc-validity").value = "30 jours";
+          document.getElementById("doc-notes").value = savedMode === "devis"
+            ? "Devis valable 30 jours. Acompte 50% à la commande. Solde à la livraison."
+            : "Paiement par virement sous 30 jours.";
+          storageSet("gmw-initialized", "1");
+        }
+        isRestoring = true;
+        for (let i = 0; i < DEFAULT_ROWS; i++) document.getElementById("lines-body").appendChild(createRow());
+        isRestoring = false;
+      }
+      bindAutoSave();
+      bindFillableVisuals();
+      bindUndoKeyboard();
+      recalc();
+      resetUndoStack();
+      try { renderHistory(); } catch {}
+    }
+
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", init) : init();
+  </script>
+</body>
+</html>
