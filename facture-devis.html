@@ -480,9 +480,9 @@
     .totals-line {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
-      gap: 20px;
-      padding: 9px 0;
+      align-items: center;
+      gap: 24px;
+      padding: 10px 0;
       font-size: 12px;
       color: var(--muted);
       border-bottom: 1px solid var(--line);
@@ -495,6 +495,7 @@
     }
 
     .totals-line span:last-child {
+      font-family: var(--sans);
       font-weight: 600;
       color: var(--ink);
       font-variant-numeric: tabular-nums;
@@ -506,25 +507,26 @@
 
     .totals-line.grand {
       border-bottom: none;
-      margin-top: 10px;
-      padding: 14px 16px;
-      gap: 28px;
-      background: var(--fillable);
-      border-radius: 3px;
+      border-top: 1.5px solid var(--line-dark);
+      margin-top: 2px;
+      padding: 12px 0 2px;
+      gap: 24px;
+      background: transparent;
       color: var(--ink);
     }
 
     .totals-line.grand span:first-child {
-      font-family: var(--serif);
-      font-size: 14px;
+      font-family: var(--sans);
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
+      color: var(--ink);
     }
 
     .totals-line.grand span:last-child {
-      font-family: var(--serif);
-      font-size: 22px;
+      font-family: var(--sans);
+      font-size: 17px;
       font-weight: 700;
       color: var(--ink);
     }
@@ -844,8 +846,11 @@
       font-weight: 600 !important;
       text-align: right !important;
     }
-    body.pdf-export .totals-line.grand { padding: 14px 16px !important; }
-    body.pdf-export .totals-line.grand span:last-child { font-size: 22px !important; }
+    body.pdf-export .totals-line.grand {
+      padding: 12px 0 2px !important;
+      background: transparent !important;
+    }
+    body.pdf-export .totals-line.grand span:last-child { font-size: 17px !important; }
 
     body.pdf-export .lines-table tbody tr.is-empty { display: none !important; }
 
@@ -1050,8 +1055,7 @@
 
       /* Bas de document empilé */
       .doc-foot { grid-template-columns: 1fr; gap: 24px; }
-      .totals-line.grand { padding: 16px; }
-      .totals-line.grand span:last-child { font-size: 21px; }
+      .totals-line.grand span:last-child { font-size: 16px; }
 
       .legal { font-size: 9px; margin-top: 24px; }
     }
