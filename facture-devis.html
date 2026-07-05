@@ -648,6 +648,77 @@
     /* Rapport historique (impression liste) */
     .history-print-report { display: none; }
 
+    /* Modal avant impression Chrome */
+    .print-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(28, 25, 23, 0.55);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .print-modal.open { display: flex; }
+
+    .print-modal-box {
+      background: #fff;
+      max-width: 440px;
+      width: 100%;
+      padding: 24px;
+      border-radius: 4px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .print-modal-box h2 {
+      font-family: var(--serif);
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .print-modal-box p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .print-modal-box ol {
+      margin: 0 0 20px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .print-modal-box strong { color: var(--ink); }
+
+    .print-modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .print-modal-actions button {
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .print-modal-actions .btn-cancel {
+      background: var(--wash);
+      color: var(--ink);
+    }
+
+    .print-modal-actions .btn-go {
+      background: var(--ink);
+      color: #fff;
+    }
+
     .history-report { padding: 0; font-size: 11pt; color: var(--ink); }
 
     .history-report h1 {
@@ -1067,7 +1138,6 @@
       .legal { font-size: 9px; margin-top: 24px; }
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 </head>
 <body class="mode-facture">
 
@@ -1100,6 +1170,22 @@
   </div>
 
   <div id="history-print-report" class="history-print-report" aria-hidden="true"></div>
+
+  <div class="print-modal" id="print-modal" role="dialog" aria-modal="true" aria-labelledby="print-modal-title">
+    <div class="print-modal-box">
+      <h2 id="print-modal-title">Imprimer ou enregistrer en PDF</h2>
+      <p>La fenêtre d'impression Chrome va s'ouvrir. Suis ces 3 étapes :</p>
+      <ol>
+        <li>Destination → <strong>Enregistrer en PDF</strong></li>
+        <li>Décoche <strong>En-têtes et pieds de page</strong></li>
+        <li>Clique <strong>Enregistrer</strong></li>
+      </ol>
+      <div class="print-modal-actions">
+        <button type="button" class="btn-cancel" onclick="closePrintModal()">Annuler</button>
+        <button type="button" class="btn-go" onclick="confirmPrintModal()">Continuer</button>
+      </div>
+    </div>
+  </div>
 
   <p class="hint">
     <strong>Mode d'emploi :</strong> les zones <strong>beige</strong> sont à remplir (clique dedans).
@@ -1580,105 +1666,36 @@
       document.querySelectorAll(".print-hide").forEach(el => el.classList.remove("print-hide"));
     }
 
-    function buildPdfCaptureNode(source) {
-      const host = document.createElement("div");
-      host.className = "pdf-capture-host";
-      host.style.cssText = "position:fixed;left:-9999px;top:0;width:820px;background:#fff;overflow:visible;";
+    let printModalCallback = null;
 
-      const clone = source.cloneNode(true);
-      const srcFields = source.querySelectorAll("input, textarea");
-      const cloneFields = clone.querySelectorAll("input, textarea");
-
-      cloneFields.forEach((field, i) => {
-        const src = srcFields[i];
-        if (!src || src.type === "hidden" || src.classList.contains("print-hide")) {
-          field.remove();
-          return;
-        }
-        const block = document.createElement("div");
-        block.className = "pdf-field";
-        block.textContent = src.value || "";
-        const style = window.getComputedStyle(src);
-        block.style.cssText = [
-          "display:block",
-          "width:100%",
-          "white-space:pre-wrap",
-          "color:" + style.color,
-          "font-family:" + style.fontFamily,
-          "font-size:" + style.fontSize,
-          "font-weight:" + style.fontWeight,
-          "text-align:" + style.textAlign,
-          "line-height:" + style.lineHeight,
-          "padding:2px 0",
-        ].join(";");
-        field.replaceWith(block);
-      });
-
-      clone.querySelectorAll(".fillable-banner, .row-actions, .remove-row, .print-hide").forEach(el => el.remove());
-      clone.querySelectorAll("tr.is-empty").forEach(el => el.remove());
-
-      host.appendChild(clone);
-      document.body.appendChild(host);
-      return { node: host, destroy: () => host.remove() };
+    function openPrintModal(onConfirm) {
+      printModalCallback = onConfirm;
+      document.getElementById("print-modal").classList.add("open");
     }
 
-    async function saveElementAsPdf(element, filename) {
-      if (typeof html2pdf === "undefined") {
-        throw new Error("html2pdf unavailable");
-      }
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
-
-      const capture = buildPdfCaptureNode(element);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-      try {
-        await html2pdf().set({
-          margin: [10, 12, 10, 12],
-          filename: filename.endsWith(".pdf") ? filename : filename + ".pdf",
-          image: { type: "png", quality: 1 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: 820,
-            width: 820,
-            backgroundColor: "#ffffff",
-          },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        }).from(capture.node.firstElementChild).save();
-      } finally {
-        capture.destroy();
-      }
+    function closePrintModal() {
+      printModalCallback = null;
+      document.getElementById("print-modal").classList.remove("open");
     }
 
-    async function printAndSave() {
+    function confirmPrintModal() {
+      const cb = printModalCallback;
+      closePrintModal();
+      if (cb) cb();
+    }
+
+    function printAndSave() {
       archiveDocument(true);
       const data = collectDocData();
-      const filename = buildPdfFilename(data);
-      const element = document.getElementById("document");
-
-      preparePrint();
-      document.body.classList.add("pdf-export");
-
-      try {
-        await saveElementAsPdf(element, filename);
-      } catch (err) {
-        console.warn("PDF export failed, fallback print:", err);
+      openPrintModal(() => {
         applyPrintTitle(data);
+        preparePrint();
         window.addEventListener("afterprint", () => {
           cleanupPrint();
           restorePrintTitle();
         }, { once: true });
         window.print();
-        return;
-      } finally {
-        document.body.classList.remove("pdf-export");
-        cleanupPrint();
-      }
+      });
     }
 
     function toggleHistory() {
@@ -1739,7 +1756,7 @@
         </div>`;
     }
 
-    async function exportHistoryListPdf() {
+    function exportHistoryListPdf() {
       const history = getHistory();
       if (!history.length) {
         alert("Aucun document dans l'historique.");
@@ -1747,15 +1764,8 @@
       }
       const report = document.getElementById("history-print-report");
       report.innerHTML = buildHistoryReportHtml(history);
-      document.body.classList.add("printing-history-list", "pdf-export");
-
-      try {
-        await saveElementAsPdf(report, "Historique_GMW_" + todayISO());
-        document.body.classList.remove("printing-history-list", "pdf-export");
-        report.innerHTML = "";
-      } catch (err) {
-        console.warn("PDF export failed, fallback print:", err);
-        document.body.classList.remove("pdf-export");
+      openPrintModal(() => {
+        document.body.classList.add("printing-history-list");
         applyHistoryListPrintTitle();
         window.addEventListener("afterprint", function onDone() {
           document.body.classList.remove("printing-history-list");
@@ -1764,10 +1774,10 @@
           window.removeEventListener("afterprint", onDone);
         });
         window.print();
-      }
+      });
     }
 
-    async function exportHistoryPdf(id) {
+    function exportHistoryPdf(id) {
       const entry = getHistory().find(h => h.id === id);
       if (!entry) return;
 
@@ -1779,32 +1789,23 @@
       currentDocId = entry.id;
       if (wasOpen) panel.classList.remove("open");
 
-      preparePrint();
-      document.body.classList.add("pdf-export");
-      const filename = buildPdfFilename(entry);
-
-      try {
-        await saveElementAsPdf(document.getElementById("document"), filename);
-      } catch (err) {
-        console.warn("PDF export failed, fallback print:", err);
+      openPrintModal(() => {
         applyPrintTitle(entry);
+        preparePrint();
         window.addEventListener("afterprint", function onDone() {
           cleanupPrint();
           restorePrintTitle();
+          if (printRestoreBackup) {
+            loadDocData(printRestoreBackup.data, { skipDraftSave: true });
+            currentDocId = printRestoreBackup.id;
+            printRestoreBackup = null;
+            document.querySelectorAll(".edit").forEach(syncFillableState);
+          }
+          if (wasOpen) panel.classList.add("open");
           window.removeEventListener("afterprint", onDone);
         });
         window.print();
-      } finally {
-        document.body.classList.remove("pdf-export");
-        cleanupPrint();
-        if (printRestoreBackup) {
-          loadDocData(printRestoreBackup.data, { skipDraftSave: true });
-          currentDocId = printRestoreBackup.id;
-          printRestoreBackup = null;
-          document.querySelectorAll(".edit").forEach(syncFillableState);
-        }
-        if (wasOpen) panel.classList.add("open");
-      }
+      });
     }
 
     function renderHistory() {
@@ -1876,6 +1877,7 @@
     function init() {
       Object.assign(window, {
         recalc, setMode, addRow, removeRow, newDocument, printAndSave,
+        closePrintModal, confirmPrintModal,
         toggleHistory, openFromHistory, deleteFromHistory, exportHistoryPdf, exportHistoryListPdf
       });
       bindLineCalc();
