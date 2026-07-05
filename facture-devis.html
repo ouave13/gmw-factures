@@ -1747,10 +1747,12 @@
         if (onDone) onDone();
       }, { once: true });
 
-      w.onload = () => {
+      const triggerPrint = () => {
         w.focus();
         setTimeout(() => w.print(), 400);
       };
+      if (w.document.readyState === "complete") triggerPrint();
+      else w.onload = triggerPrint;
       return true;
     }
 
