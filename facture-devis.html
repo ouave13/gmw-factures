@@ -864,6 +864,8 @@
       .doc-foot, .legal { page-break-inside: avoid; break-inside: avoid; }
 
       input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+
+      .print-modal { display: none !important; }
     }
 
     /* Export PDF (html2pdf — même rendu que l'impression, sans URL Chrome) */
@@ -1174,7 +1176,7 @@
   <div class="print-modal" id="print-modal" role="dialog" aria-modal="true" aria-labelledby="print-modal-title">
     <div class="print-modal-box">
       <h2 id="print-modal-title">Imprimer ou enregistrer en PDF</h2>
-      <p>La fenêtre d'impression Chrome va s'ouvrir. Suis ces 3 étapes :</p>
+      <p>Une nouvelle fenêtre va s'ouvrir avec ta facture, puis l'impression Chrome.</p>
       <ol>
         <li>Destination → <strong>Enregistrer en PDF</strong></li>
         <li>Décoche <strong>En-têtes et pieds de page</strong></li>
@@ -1684,17 +1686,84 @@
       if (cb) cb();
     }
 
+    function openPrintWindow(onDone) {
+      const docEl = document.getElementById("document");
+      const clone = docEl.cloneNode(true);
+      const origFields = docEl.querySelectorAll("input, textarea");
+      const cloneFields = clone.querySelectorAll("input, textarea");
+
+      cloneFields.forEach((field, i) => {
+        const src = origFields[i];
+        if (!src || src.type === "hidden" || src.classList.contains("print-hide")) {
+          field.remove();
+          return;
+        }
+        const block = document.createElement("div");
+        block.className = "print-value";
+        block.textContent = src.value || "";
+        block.style.cssText = "white-space:pre-wrap;line-height:1.5;color:#1c1917;";
+        const style = window.getComputedStyle(src);
+        if (style.textAlign === "right" || src.classList.contains("r") || src.classList.contains("edit--num")) {
+          block.style.textAlign = "right";
+        }
+        if (src.classList.contains("edit--title")) block.style.fontWeight = "700";
+        field.replaceWith(block);
+      });
+
+      clone.querySelectorAll(".fillable-banner, .row-actions, .remove-row, .print-hide").forEach(el => el.remove());
+      clone.querySelectorAll("tr.is-empty").forEach(el => el.remove());
+
+      const mode = document.body.classList.contains("mode-devis") ? "devis" : "facture";
+      const title = document.title.replace(/</g, "&lt;");
+      const styles = Array.from(document.querySelectorAll("style")).map(s => s.textContent).join("\n");
+      const extra = [
+        "html,body{min-width:820px;background:#fff;margin:0;}",
+        "body{padding:0;}",
+        ".page-wrap{margin:0;padding:0;max-width:none;}",
+        ".document{padding:48px 52px 40px;box-shadow:none;}",
+        ".edit,.party-to,.notes{border:none!important;background:transparent!important;}",
+        ".lines-table thead{display:table-header-group!important;}",
+        ".lines-table tbody{display:table-row-group!important;}",
+        ".lines-table tr{display:table-row!important;}",
+        ".lines-table td{display:table-cell!important;}",
+        ".lines-table td::before{content:none!important;}",
+      ].join("");
+
+      const w = window.open("", "_blank");
+      if (!w) {
+        alert("Autorise les popups pour ce site (Chrome → icône à droite de la barre d'adresse), puis réessaie.");
+        return false;
+      }
+
+      const docHtml = clone.innerHTML;
+      w.document.open();
+      w.document.write("<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\"><title>" + title + "</title><link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link href=\"https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\"><style>" + styles + "\n" + extra + "</style></head><body class=\"mode-" + mode + "\"><div class=\"page-wrap\"><article class=\"document\">" + docHtml + "</article></div></body></html>");
+      w.document.close();
+
+      w.addEventListener("afterprint", () => {
+        cleanupPrint();
+        restorePrintTitle();
+        try { w.close(); } catch {}
+        if (onDone) onDone();
+      }, { once: true });
+
+      w.onload = () => {
+        w.focus();
+        setTimeout(() => w.print(), 400);
+      };
+      return true;
+    }
+
     function printAndSave() {
       archiveDocument(true);
       const data = collectDocData();
       openPrintModal(() => {
         applyPrintTitle(data);
         preparePrint();
-        window.addEventListener("afterprint", () => {
+        if (!openPrintWindow()) {
           cleanupPrint();
           restorePrintTitle();
-        }, { once: true });
-        window.print();
+        }
       });
     }
 
@@ -1792,9 +1861,7 @@
       openPrintModal(() => {
         applyPrintTitle(entry);
         preparePrint();
-        window.addEventListener("afterprint", function onDone() {
-          cleanupPrint();
-          restorePrintTitle();
+        const restore = () => {
           if (printRestoreBackup) {
             loadDocData(printRestoreBackup.data, { skipDraftSave: true });
             currentDocId = printRestoreBackup.id;
@@ -1802,9 +1869,12 @@
             document.querySelectorAll(".edit").forEach(syncFillableState);
           }
           if (wasOpen) panel.classList.add("open");
-          window.removeEventListener("afterprint", onDone);
-        });
-        window.print();
+        };
+        if (!openPrintWindow(restore)) {
+          cleanupPrint();
+          restorePrintTitle();
+          restore();
+        }
       });
     }
 
