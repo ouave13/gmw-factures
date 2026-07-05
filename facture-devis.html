@@ -874,8 +874,14 @@
     }
 
     body.pdf-export .document {
-      padding: 0;
+      padding: 48px 52px 40px;
       box-shadow: none;
+    }
+
+    body.pdf-export .pdf-capture-host .document {
+      padding: 48px 52px 40px !important;
+      box-shadow: none !important;
+      background: #fff !important;
     }
 
     body.pdf-export .edit {
@@ -1061,6 +1067,7 @@
       .legal { font-size: 9px; margin-top: 24px; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 </head>
 <body class="mode-facture">
 
@@ -1573,27 +1580,46 @@
       document.querySelectorAll(".print-hide").forEach(el => el.classList.remove("print-hide"));
     }
 
-    async function materializeInputsForPdf(root) {
-      root.querySelectorAll("input, textarea").forEach(el => {
-        if (el.type === "hidden" || el.classList.contains("print-hide")) return;
-        const span = document.createElement("span");
-        span.className = "pdf-text";
-        span.textContent = el.value || "";
-        span.style.cssText = "display:inline-block;width:100%;white-space:pre-wrap;color:inherit;font:inherit;line-height:inherit;";
-        if (el.classList.contains("r") || el.style.textAlign === "right") span.style.textAlign = "right";
-        el.dataset.pdfReplaced = "1";
-        el.parentNode.insertBefore(span, el);
-        el.style.display = "none";
-      });
-    }
+    function buildPdfCaptureNode(source) {
+      const host = document.createElement("div");
+      host.className = "pdf-capture-host";
+      host.style.cssText = "position:fixed;left:-9999px;top:0;width:820px;background:#fff;overflow:visible;";
 
-    function restoreInputsAfterPdf(root) {
-      root.querySelectorAll("[data-pdf-replaced]").forEach(el => {
-        el.style.display = "";
-        delete el.dataset.pdfReplaced;
-        const span = el.previousElementSibling;
-        if (span?.classList.contains("pdf-text")) span.remove();
+      const clone = source.cloneNode(true);
+      const srcFields = source.querySelectorAll("input, textarea");
+      const cloneFields = clone.querySelectorAll("input, textarea");
+
+      cloneFields.forEach((field, i) => {
+        const src = srcFields[i];
+        if (!src || src.type === "hidden" || src.classList.contains("print-hide")) {
+          field.remove();
+          return;
+        }
+        const block = document.createElement("div");
+        block.className = "pdf-field";
+        block.textContent = src.value || "";
+        const style = window.getComputedStyle(src);
+        block.style.cssText = [
+          "display:block",
+          "width:100%",
+          "white-space:pre-wrap",
+          "color:" + style.color,
+          "font-family:" + style.fontFamily,
+          "font-size:" + style.fontSize,
+          "font-weight:" + style.fontWeight,
+          "text-align:" + style.textAlign,
+          "line-height:" + style.lineHeight,
+          "padding:2px 0",
+        ].join(";");
+        field.replaceWith(block);
       });
+
+      clone.querySelectorAll(".fillable-banner, .row-actions, .remove-row, .print-hide").forEach(el => el.remove());
+      clone.querySelectorAll("tr.is-empty").forEach(el => el.remove());
+
+      host.appendChild(clone);
+      document.body.appendChild(host);
+      return { node: host, destroy: () => host.remove() };
     }
 
     async function saveElementAsPdf(element, filename) {
@@ -1603,33 +1629,29 @@
       if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
       }
-      await materializeInputsForPdf(element);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      const scrollTop = window.scrollY;
-      element.scrollIntoView({ block: "start" });
-      await new Promise(r => setTimeout(r, 50));
+      const capture = buildPdfCaptureNode(element);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
       try {
         await html2pdf().set({
           margin: [10, 12, 10, 12],
           filename: filename.endsWith(".pdf") ? filename : filename + ".pdf",
-          image: { type: "jpeg", quality: 0.96 },
+          image: { type: "png", quality: 1 },
           html2canvas: {
             scale: 2,
             useCORS: true,
+            allowTaint: true,
             scrollX: 0,
             scrollY: 0,
             windowWidth: 820,
-            width: element.offsetWidth || 820,
+            width: 820,
             backgroundColor: "#ffffff",
           },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"] },
-        }).from(element).save();
+        }).from(capture.node.firstElementChild).save();
       } finally {
-        restoreInputsAfterPdf(element);
-        window.scrollTo(0, scrollTop);
+        capture.destroy();
       }
     }
 
@@ -1893,6 +1915,5 @@
 
     document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", init) : init();
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>
